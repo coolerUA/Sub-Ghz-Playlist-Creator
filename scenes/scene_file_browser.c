@@ -35,7 +35,7 @@ void scene_file_browser_select(
     SceneFileBrowserSelectCallback on_select
 ) {
     app->file_browser_select_cb = on_select;
-    furi_string_reset(app->file_browser_result);
+    furi_string_set(app->file_browser_result, start_dir);
     file_browser_configure(
         app->file_browser,
         extension,

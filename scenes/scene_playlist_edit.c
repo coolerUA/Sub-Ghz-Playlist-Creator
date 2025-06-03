@@ -18,6 +18,7 @@
 
 #define MAX_PLAYLIST_LINES 128
 #define MAX_FILENAME_LENGTH 128
+#define SUBGHZ_DIRECTORY "/ext/subghz"
 #define TAG "PlaylistEditScene"
 
 // Dialog type for PlaylistEdit
@@ -125,7 +126,7 @@ static void playlist_edit_submenu_callback(void* context, uint32_t index) {
     if(index == app->playlist_entry_count) {
         FURI_LOG_D(TAG, "[+] Add file selected");
         app->return_scene = ReturnScene_PlaylistEdit;
-        scene_file_browser_select(app, "/ext", ".sub", on_add_file_selected);
+        scene_file_browser_select(app, SUBGHZ_DIRECTORY, ".sub", on_add_file_selected);
     } else if(index == app->playlist_entry_count + 1) {
         FURI_LOG_D(TAG, "Save playlist selected, showing dialog");
         scene_dialog_show_custom(
