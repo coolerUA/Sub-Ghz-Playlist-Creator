@@ -29,11 +29,11 @@ A Flipper Zero application for creating and managing playlists of .sub files.
 
 ## Playlist Format
 
-Playlists are stored as simple text files in the `/ext/subghz/playlists` directory. Each line in the playlist file contains the full path to a .sub file.
+Playlists are stored as simple text files in the `/ext/subghz/playlist` directory. Each line in the playlist file contains the full path to a .sub file.
 
 ## Notes
 
-- Playlists are stored in `/ext/subghz/playlists` directory
+- Playlists are stored in `/ext/subghz/playlist` directory
 - Each playlist is saved as a .txt file
 - The application only works with .sub files
 - Make sure your SD card has enough space for the playlists 
