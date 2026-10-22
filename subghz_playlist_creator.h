@@ -12,6 +12,15 @@
 #include <gui/modules/file_browser.h>
 #include <storage/storage.h>
 #define MAX_TEXT_LENGTH 128
+// Most files one playlist can hold (each one uses a bit of the Flipper's small memory)
+#define MAX_PLAYLIST_ENTRIES 300
+
+// What the browser is used for
+typedef enum {
+    BrowserModeCreate, // "Create": pick .sub files/folder for a new playlist
+    BrowserModeAddToEdit, // "[+] Add folder" while editing a playlist
+    BrowserModePlaylists, // "Edit": pick a playlist (long OK = Rename / Delete)
+} BrowserMode;
 
 // Forward declare struct for callback
 struct SubGhzPlaylistCreator;
@@ -54,6 +63,15 @@ typedef struct SubGhzPlaylistCreator {
     FuriTimer* popup_timer;
     struct VariableItemList* playlist_edit_list;
     ReturnScene return_scene; // Add this field
+    // "[+] Add folder"
+    FuriString* folder_path; // last .sub folder used (browser opens there next time)
+    View* folder_view; // the browser screen
+    FuriTimer* folder_scroll_timer; // scrolls long names
+    FuriString* browse_path; // folder the browser is showing right now
+    FuriString* pending_path; // file/folder a dialog is about (import, delete, rename)
+    BrowserMode browser_mode;
+    int browser_dialog; // which browser dialog is open
+    bool return_to_browser; // Back in a dialog/keyboard goes back to the browser
 } SubGhzPlaylistCreator;
 
 
@@ -64,11 +82,13 @@ typedef enum {
     SubGhzPlaylistCreatorViewDialog,
     SubGhzPlaylistCreatorViewFileBrowser,
     SubGhzPlaylistCreatorViewPlaylistEdit,
+    SubGhzPlaylistCreatorViewFolderPicker,
 } SubGhzPlaylistCreatorView;
 
 // Custom events
 typedef enum {
     SubGhzPlaylistCreatorCustomEventShowMenu = 100, // Start custom events from 100 or higher
+    SubGhzPlaylistCreatorCustomEventBackToPlaylist,
 } SubGhzPlaylistCreatorCustomEvent;
 
 // Function declarations
@@ -79,3 +99,4 @@ bool subghz_playlist_creator_back_event_callback(void* context);
 int32_t subghz_playlist_creator_app(void* p);
 // Playlist editing scene
 void scene_playlist_edit_show(SubGhzPlaylistCreator* app);
+void subghz_playlist_creator_open_playlist(SubGhzPlaylistCreator* app, const char* path);

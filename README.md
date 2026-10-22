@@ -7,6 +7,8 @@ A Flipper Zero application for creating and managing playlists of .sub files.
 - Create new playlists
 - Edit existing playlists
 - Add .sub files to playlists
+- Import whole folders at once, optionally including all subfolders
+- Rename and delete playlists (hold OK in the Edit browser)
 - Simple text-based playlist format
 
 ## Installation
@@ -26,6 +28,29 @@ A Flipper Zero application for creating and managing playlists of .sub files.
 4. For existing playlists:
    - Select the playlist you want to edit
    - Add or remove files as needed
+
+## Creating a playlist
+
+1. **Create** → type a name
+2. A browser opens in `/ext/subghz` (it looks like the Flipper's file browser, with
+   `< Cancel` and `Select >` buttons at the bottom):
+   - **Up/Down** move, **OK** opens a folder, **Back** (or `. .`) goes one folder up
+   - **Right – Select** (or hold OK) picks the highlighted folder or file;
+     on `. .` it picks the folder you are in. **OK** on a file picks that file.
+   - If the picked folder has subfolders, you are asked whether to import them too
+   - **Left – Cancel** goes back to the main menu
+3. A screen shows how many files were imported:
+   **< Cancel** discards the playlist, **OK >** saves it. Both go back to the main menu.
+
+Files are added in alphabetical order (same as the Flipper file browser). With subfolders, a folder's own files
+come first, then each subfolder in turn. A playlist holds at most 300 files.
+
+## Editing, renaming, deleting
+
+**Edit** opens a browser of `/ext/subghz/playlist`:
+
+- **OK** on a playlist opens it: remove entries, `[+] Add file`, `[+] Add folder`, `[s] Save playlist`
+- **Hold OK** on a playlist opens a small menu with **Rename** and **Delete** (Delete removes it right away)
 
 ## Playlist Format
 

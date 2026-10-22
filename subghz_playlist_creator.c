@@ -5,6 +5,7 @@
 #include "scenes/scene_dialog.h"
 #include "scenes/scene_file_browser.h"
 #include "scenes/scene_playlist_edit.h"
+#include "scenes/scene_folder_picker.h"
 #include <furi_hal.h>
 #include <input/input.h>
 #include <gui/view.h>
@@ -25,7 +26,6 @@
 #define MAX_TEXT_LENGTH 128
 
 // Forward declarations
-static void create_playlist_file(SubGhzPlaylistCreator* app);
 static void subghz_playlist_creator_dialog_callback(DialogExResult result, void* context);
 
 // Replace the back event callback
@@ -56,52 +56,18 @@ static bool file_read_line(File* file, char* buffer, size_t max_len) {
     return (i > 0) || (c == '\n');
 }
 
-static void show_popup(SubGhzPlaylistCreator* app, const char* header, const char* text) {
-    scene_popup_show(app, header, text);
-}
-
-static void create_playlist_file(SubGhzPlaylistCreator* app) {
-    if(!storage_simply_mkdir(app->storage, PLAYLIST_DIRECTORY)) {
-        show_popup(app, "Error", "Failed to create directory");
-        scene_menu_show(app);
-        return;
-    }
-    File* file = storage_file_alloc(app->storage);
-    if(!file) {
-        show_popup(app, "Error", "Failed to alloc file");
-        scene_menu_show(app);
-        return;
-    }
-    if(storage_file_open(file, furi_string_get_cstr(app->playlist_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        const char* header = "# SubGhz Playlist\n";
-        if(storage_file_write(file, header, strlen(header)) == strlen(header)) {
-            storage_file_close(file);
-            show_popup(app, "Success", "File created!");
-            scene_playlist_edit_show(app);
-            storage_file_free(file);
-            return;
-        } else {
-            storage_file_close(file);
-            show_popup(app, "Error", "Failed to write file");
-        }
-    } else {
-        show_popup(app, "Error", "Failed to open file");
-    }
-    storage_file_free(file);
-    scene_menu_show(app);
-}
-
 static void subghz_playlist_creator_dialog_callback(DialogExResult result, void* context) {
     SubGhzPlaylistCreator* app = context;
     if(result == DialogExResultRight) {
-        create_playlist_file(app);
+        // overwrite: pick the files for the playlist
+        scene_folder_picker_show(app, BrowserModeCreate);
     } else {
         scene_text_input_show(app);
     }
 }
 
-// Callback for file selection from Edit
-static void on_edit_file_selected(SubGhzPlaylistCreator* app, const char* path) {
+// Opens a playlist file for editing (called from the "Edit" browser)
+void subghz_playlist_creator_open_playlist(SubGhzPlaylistCreator* app, const char* path) {
     furi_string_set_str(app->playlist_path, path);
     const char* filename = strrchr(path, '/');
     if(filename) {
@@ -146,23 +112,33 @@ static void on_edit_file_selected(SubGhzPlaylistCreator* app, const char* path) 
     scene_playlist_edit_show(app);
 }
 
+static void subghz_playlist_creator_text_input_callback(void* context);
+
 static void subghz_playlist_creator_submenu_callback(void* context, uint32_t index) {
     SubGhzPlaylistCreator* app = context;
     if(index == 2) { // Exit
         view_dispatcher_stop(app->view_dispatcher);
     } else if(index == 0) { // Create
-        memset(app->text_buffer, 0, MAX_TEXT_LENGTH);
+        // (the keyboard is also used for "Rename", so set it up for "Create" again)
+        text_input_reset(app->text_input);
+        text_input_set_header_text(app->text_input, "Enter playlist name");
+        text_input_set_result_callback(
+            app->text_input,
+            subghz_playlist_creator_text_input_callback,
+            app,
+            app->text_buffer,
+            MAX_TEXT_LENGTH,
+            true);
         scene_text_input_show(app);
-    } else if(index == 1) { // Edit
-        scene_file_browser_select(app, PLAYLIST_DIRECTORY, PLAYLIST_EXTENSION, on_edit_file_selected);
+    } else if(index == 1) { // Edit: pick a playlist (long OK = Rename / Delete)
+        scene_folder_picker_show(app, BrowserModePlaylists);
     }
 }
 
 static void subghz_playlist_creator_text_input_callback(void* context) {
     SubGhzPlaylistCreator* app = context;
     if(strlen(app->text_buffer) == 0) {
-        show_popup(app, "Error", "Name cannot be empty");
-        return;
+        return; // empty name: stay in the keyboard
     }
     furi_string_set_str(app->playlist_name, app->text_buffer);
     furi_string_printf(app->playlist_path, "%s/%s%s", PLAYLIST_DIRECTORY, app->text_buffer, PLAYLIST_EXTENSION);
@@ -170,6 +146,7 @@ static void subghz_playlist_creator_text_input_callback(void* context) {
     bool exists = storage_file_exists(app->storage, furi_string_get_cstr(app->playlist_path));
     storage_file_free(file);
     if(exists) {
+        dialog_ex_reset(app->dialog);
         dialog_ex_set_header(app->dialog, "File exists", 64, 0, AlignCenter, AlignTop);
         dialog_ex_set_text(app->dialog, "Overwrite?", 64, 32, AlignCenter, AlignCenter);
         dialog_ex_set_left_button_text(app->dialog, "No");
@@ -178,7 +155,8 @@ static void subghz_playlist_creator_text_input_callback(void* context) {
         dialog_ex_set_context(app->dialog, app);
         scene_dialog_show(app);
     } else {
-        create_playlist_file(app);
+        // pick the files for the new playlist
+        scene_folder_picker_show(app, BrowserModeCreate);
     }
 }
 
@@ -213,6 +191,8 @@ SubGhzPlaylistCreator* subghz_playlist_creator_alloc(void) {
     FURI_LOG_D(TAG, "Allocated playlist name string: %p", app->playlist_name);
     app->playlist_path = furi_string_alloc();
     FURI_LOG_D(TAG, "Allocated playlist path string: %p", app->playlist_path);
+    app->folder_path = furi_string_alloc();
+    scene_folder_picker_alloc(app);
     memset(app->text_buffer, 0, MAX_TEXT_LENGTH);
     app->is_stopped = false;
     app->current_view = SubGhzPlaylistCreatorViewSubmenu;
@@ -242,6 +222,7 @@ SubGhzPlaylistCreator* subghz_playlist_creator_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, SubGhzPlaylistCreatorViewDialog, dialog_ex_get_view(app->dialog));
     FURI_LOG_D(TAG, "Adding file browser view %p with ID %lu", file_browser_get_view(app->file_browser), (uint32_t)SubGhzPlaylistCreatorViewFileBrowser);
     view_dispatcher_add_view(app->view_dispatcher, SubGhzPlaylistCreatorViewFileBrowser, file_browser_get_view(app->file_browser));
+    view_dispatcher_add_view(app->view_dispatcher, SubGhzPlaylistCreatorViewFolderPicker, app->folder_view);
 
     // Set initial scene
     scene_menu_show(app);
@@ -291,6 +272,7 @@ void subghz_playlist_creator_free(SubGhzPlaylistCreator* app) {
     FURI_LOG_D(TAG, "Removed dialog view");
     view_dispatcher_remove_view(app->view_dispatcher, SubGhzPlaylistCreatorViewFileBrowser);
     FURI_LOG_D(TAG, "Removed file browser view");
+    view_dispatcher_remove_view(app->view_dispatcher, SubGhzPlaylistCreatorViewFolderPicker);
     // Remove playlist edit view if allocated
     if(app->playlist_edit_list) {
         view_dispatcher_remove_view(app->view_dispatcher, SubGhzPlaylistCreatorViewPlaylistEdit);
@@ -317,6 +299,8 @@ void subghz_playlist_creator_free(SubGhzPlaylistCreator* app) {
     FURI_LOG_D(TAG, "Freed playlist name string");
     furi_string_free(app->playlist_path);
     FURI_LOG_D(TAG, "Freed playlist path string");
+    scene_folder_picker_free(app);
+    furi_string_free(app->folder_path);
     // Free playlist entries
     if(app->playlist_entries) {
         for(size_t i = 0; i < app->playlist_entry_count; ++i) {
@@ -350,6 +334,11 @@ bool subghz_playlist_creator_custom_callback(void* context, uint32_t custom_even
         scene_menu_show(app);
         return true;
     }
+    if(custom_event == SubGhzPlaylistCreatorCustomEventBackToPlaylist) {
+        // "x files added" popup is done -> back to the playlist
+        scene_playlist_edit_show(app);
+        return true;
+    }
 
     return false;
 }
@@ -362,6 +351,13 @@ bool subghz_playlist_creator_back_event_callback(void* context) {
     // If in PlaylistEdit, show discard dialog
     if(app->current_view == SubGhzPlaylistCreatorViewPlaylistEdit) {
         scene_playlist_edit_back_event_callback(app);
+        return true;
+    }
+    // A dialog or the rename keyboard opened from the browser: back to the browser
+    if(app->return_to_browser &&
+       (app->current_view == SubGhzPlaylistCreatorViewDialog ||
+        app->current_view == SubGhzPlaylistCreatorViewTextInput)) {
+        scene_folder_picker_dialog_back(app);
         return true;
     }
     // If not in main menu, go to main menu
