@@ -3,12 +3,13 @@ App(
     name="Sub-GHz Playlist Creator",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="subghz_playlist_creator_app",
-    stack_size=2 * 1024,
+    stack_size=4 * 1024,
     fap_category="Sub-GHz",
     fap_icon="subghz_playlist_creator.png",
     fap_description="App for creating or editing SubGhz playlists",
     fap_author="coolerUA",
     fap_weburl="https://github.com/coolerUA/Sub-Ghz-Playlist-Creator",
+    fap_version="1.1",
     fap_icon_assets="images",  
 )
 

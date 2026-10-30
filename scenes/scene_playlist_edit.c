@@ -12,6 +12,7 @@
 #include <gui/modules/dialog_ex.h>
 #include <gui/view.h>
 #include "scene_dialog.h"
+#include "scene_folder_picker.h"
 #include <gui/modules/submenu.h>
 #include <furi_hal.h>
 
@@ -108,7 +109,7 @@ static void edit_dialog_callback(DialogExResult result, void* context) {
 
 // Move the full definition of on_add_file_selected here:
 static void on_add_file_selected(SubGhzPlaylistCreator* app, const char* path) {
-    if(path && strlen(path)) {
+    if(path && strlen(path) && app->playlist_entry_count < MAX_PLAYLIST_ENTRIES) {
         if(app->playlist_entry_count == app->playlist_entry_capacity) {
             app->playlist_entry_capacity = app->playlist_entry_capacity ? app->playlist_entry_capacity * 2 : 8;
             app->playlist_entries = realloc(app->playlist_entries, app->playlist_entry_capacity * sizeof(char*));
@@ -128,6 +129,9 @@ static void playlist_edit_submenu_callback(void* context, uint32_t index) {
         app->return_scene = ReturnScene_PlaylistEdit;
         scene_file_browser_select(app, SUBGHZ_DIRECTORY, ".sub", on_add_file_selected);
     } else if(index == app->playlist_entry_count + 1) {
+        FURI_LOG_D(TAG, "[+] Add folder selected");
+        scene_folder_picker_show(app, BrowserModeAddToEdit);
+    } else if(index == app->playlist_entry_count + 2) {
         FURI_LOG_D(TAG, "Save playlist selected, showing dialog");
         scene_dialog_show_custom(
             app,
@@ -173,8 +177,10 @@ void scene_playlist_edit_show(SubGhzPlaylistCreator* app) {
     }
     // Add '[+] Add file' as next-to-last item
     submenu_add_item(app->playlist_edit_submenu, "[+] Add file", app->playlist_entry_count, playlist_edit_submenu_callback, app);
+    // Add '[+] Add folder' (all .sub files of a folder at once; asks about subfolders)
+    submenu_add_item(app->playlist_edit_submenu, "[+] Add folder", app->playlist_entry_count + 1, playlist_edit_submenu_callback, app);
     // Add 'Save playlist' as last item
-    submenu_add_item(app->playlist_edit_submenu, "[s] Save playlist", app->playlist_entry_count + 1, playlist_edit_submenu_callback, app);
+    submenu_add_item(app->playlist_edit_submenu, "[s] Save playlist", app->playlist_entry_count + 2, playlist_edit_submenu_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, SubGhzPlaylistCreatorViewPlaylistEdit);
 }
 
