@@ -2,34 +2,66 @@
 
 A Flipper Zero application for creating and managing playlists of .sub files.
 
+## Changes in this fork
+
+Compared to the original [coolerUA/Sub-Ghz-Playlist-Creator](https://github.com/coolerUA/Sub-Ghz-Playlist-Creator):
+
+### New
+
+- **Import whole folders:** pick a folder and all `.sub` files in it are added at once.
+  If the folder has subfolders, the app asks "Also import the subfolders?" (No / Yes).
+- **New browser:** looks and works like the Flipper's own file browser (same rows, icons,
+  highlight bar, scrollbar, scrolling long names), with `< Cancel` and `Select >` buttons
+  at the bottom. Opens in the last used folder.
+- **New "Create" flow:** name → pick file/folder → "X files imported" screen with
+  `< Cancel` / `OK >`. The playlist file is only written when you press OK.
+- **"Edit" browser with Rename and Delete:** hold OK on a playlist to open a small menu.
+- **`[+] Add folder`** inside an opened playlist, next to `[+] Add file`.
+- **New app icon.**
+- **Momentum build** added to the GitHub workflow.
+
+### Fixed / changed
+
+- Creating a playlist no longer writes an empty file right after entering the name.
+- An empty playlist name no longer shows an error popup that doesn't go away;
+  the app just stays in the keyboard.
+- Limit of 300 entries per playlist, so large folders can't run the Flipper out of memory.
+- Stack size raised from 2 KB to 4 KB for scanning folders.
+- `fap_version` set to 1.1.
+
+### Credits
+
+- The three 10px browser icons (`images/fb_*.png`) are taken from the Flipper Zero firmware assets
+  (GPL-3.0), because the official firmware doesn't make them available to apps.
+
 ## Features
 
-- Create new playlists
-- Edit existing playlists
-- Add .sub files to playlists
+- Create new playlists from single `.sub` files or whole folders
 - Import whole folders at once, optionally including all subfolders
+- Browser that looks and works like the Flipper's own file browser
+- Edit existing playlists (remove entries, add files or folders)
 - Rename and delete playlists (hold OK in the Edit browser)
 - Simple text-based playlist format
 
 ## Installation
 
-1. Copy the application files to your Flipper Zero's applications folder
-2. Compile the application using the Flipper Zero firmware build system
-3. Install the compiled application on your Flipper Zero
+Build the app with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt):
+
+```
+pip install ufbt
+ufbt update                # official firmware
+# or, for Momentum firmware:
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json
+ufbt launch                # builds, copies to the Flipper and starts the app
+```
+
+The GitHub workflow also builds ready-to-use `.fap` files for the official firmware (release and dev) and for Momentum.
 
 ## Usage
 
-1. Launch the application from the Flipper Zero's applications menu
-2. Choose between creating a new playlist or editing an existing one
-3. For new playlists:
-   - Enter a name for your playlist
-   - Use the file browser to select .sub files to add
-   - Press back to finish adding files
-4. For existing playlists:
-   - Select the playlist you want to edit
-   - Add or remove files as needed
+The main menu has **Create**, **Edit** and **Exit**.
 
-## Creating a playlist
+### Creating a playlist
 
 1. **Create** → type a name
 2. A browser opens in `/ext/subghz` (it looks like the Flipper's file browser, with
@@ -45,23 +77,35 @@ A Flipper Zero application for creating and managing playlists of .sub files.
 Files are added in alphabetical order (same as the Flipper file browser). With subfolders, a folder's own files
 come first, then each subfolder in turn. A playlist holds at most 300 files.
 
-## Editing, renaming, deleting
+The browser opens in the last folder you used.
+
+### Editing, renaming, deleting
 
 **Edit** opens a browser of `/ext/subghz/playlist`:
 
-- **OK** on a playlist opens it: remove entries, `[+] Add file`, `[+] Add folder`, `[s] Save playlist`
+- **OK** on a playlist opens it:
+  - select an entry to remove it from the playlist
+  - `[+] Add file` adds a single `.sub` file
+  - `[+] Add folder` adds all `.sub` files of a folder (asks about subfolders, if there are any)
+  - `[s] Save playlist` saves your changes
 - **Hold OK** on a playlist opens a small menu with **Rename** and **Delete** (Delete removes it right away)
 
 ## Playlist Format
 
-Playlists are stored as simple text files in the `/ext/subghz/playlist` directory. Each line in the playlist file contains the full path to a .sub file.
+Playlists are stored as simple text files in the `/ext/subghz/playlist` directory:
+
+```
+# SubGhz Playlist
+sub: /ext/subghz/Doorbells/bell_1.sub
+sub: /ext/subghz/Doorbells/bell_2.sub
+```
 
 ## Notes
 
 - Playlists are stored in `/ext/subghz/playlist` directory
 - Each playlist is saved as a .txt file
 - The application only works with .sub files
-- Make sure your SD card has enough space for the playlists 
+- Make sure your SD card has enough space for the playlists
 
 
 All code generated by AI.
